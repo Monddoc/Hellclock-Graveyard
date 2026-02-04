@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* The Graveyard — Hell Clock: Slate (950–800), Zinc, Crimson Red */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-cinzel: 'Cinzel', serif;
+
+  --color-crimson-400: #f87171;
+  --color-crimson-500: #dc2626;
+  --color-crimson-600: #b91c1c;
+  --color-crimson-950: #450a0a;
+}
+
+@layer base {
+  html {
+    overflow-y: scroll;
+    /* Force scrollbar to prevent layout shift */
+  }
+
+  body {
+    @apply bg-[#0c0a09] text-stone-200 antialiased;
+    font-family: var(--font-sans);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+}
+
+/* Cinzel for tombstones / headings */
+.font-cinzel {
+  font-family: var(--font-cinzel);
+}
