@@ -146,19 +146,17 @@ export default function App() {
           {/* Main Toggles */}
           <div className="flex flex-wrap items-center justify-center gap-4">
             {/* Upload Toggle */}
-            {user && (
-              <button
-                onClick={() => setShowUpload(!showUpload)}
-                className={`flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-medium transition-all
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className={`flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-medium transition-all
                   ${showUpload
-                    ? 'border-red-500/50 bg-red-900/20 text-red-200'
-                    : 'border-stone-700 bg-stone-800/50 text-stone-400 hover:border-stone-500 hover:text-stone-200'
-                  }`}
-              >
-                <span className="text-xl">⚰️</span>
-                <span>{showUpload ? 'Close Crypt' : 'Bury a Hero'}</span>
-              </button>
-            )}
+                  ? 'border-red-500/50 bg-red-900/20 text-red-200'
+                  : 'border-stone-700 bg-stone-800/50 text-stone-400 hover:border-stone-500 hover:text-stone-200'
+                }`}
+            >
+              <span className="text-xl">⚰️</span>
+              <span>{showUpload ? 'Close Crypt' : 'Bury a Hero'}</span>
+            </button>
 
             {/* Lights Toggle */}
             <button
