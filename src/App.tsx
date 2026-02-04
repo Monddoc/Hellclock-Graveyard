@@ -70,14 +70,23 @@ export default function App() {
   }, []);
 
   const [showUpload, setShowUpload] = useState(false);
-  // Removed global mouse tracking to prevent app-wide re-renders
   // AtmosphericLighting handles its own mouse interactions efficiently.
+
+  // 1. Define the logic helper
+  const getRedirectUrl = () => {
+    // If we are running 'npm run dev' on your computer...
+    if (import.meta.env.DEV) {
+      return 'http://localhost:5173/Hellclock-Graveyard/';
+    }
+    // If we are built and deployed to GitHub...
+    return 'https://monddoc.github.io/Hellclock-Graveyard/';
+  };
 
   async function handleDiscordLogin() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: 'https://monddoc.github.io/Hellclock-Graveyard/',
+        redirectTo: getRedirectUrl(),
       },
     });
     if (error) {
