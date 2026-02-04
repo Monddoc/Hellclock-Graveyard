@@ -167,6 +167,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         className="relative w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500"
         onHoverStart={() => setExpanded(true)}
         onHoverEnd={() => setExpanded(false)}
+        onClick={() => setExpanded(!expanded)}
         initial={false}
         animate={{
           height: expanded ? 'auto' : '480px', // Increased to accommodate bigger skills
