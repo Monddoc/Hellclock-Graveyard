@@ -77,7 +77,7 @@ export default function App() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: 'https://monddoc.github.io/Hellclock-Graveyard/',
       },
     });
     if (error) {
