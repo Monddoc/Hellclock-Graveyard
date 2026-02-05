@@ -222,7 +222,7 @@ export default function App() {
             </div>
             <input
               type="text"
-              placeholder="Search by Hero or Mourner..."
+              placeholder="Search by Character Name or User..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full rounded-full border border-stone-800 bg-stone-900/50 py-2 pl-10 pr-4 text-sm text-stone-200 placeholder-stone-600 focus:border-red-900 focus:ring-1 focus:ring-red-900 focus:outline-none"
