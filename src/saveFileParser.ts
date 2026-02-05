@@ -48,7 +48,6 @@ export function validateSaveFile(data: unknown): ValidationError | null {
 function getLastRunStats(data: PlayerSaveData): {
   level: number;
   damageTaken: number;
-  classId: number;
   lastRunKills: number;
   lastRunSoulstones: number;
   lastRunRegularKills: number;
@@ -77,17 +76,13 @@ function getLastRunStats(data: PlayerSaveData): {
   const lastRunDuration = getValueFromSerializedList(aggList, 'RunTime');
 
   const damageInstances = lastRun._lastDamageInstances;
-  const damageTaken = Array.isArray(damageInstances) && damageInstances.length > 0
-    ? (damageInstances[damageInstances.length - 1]!._totalDamage ?? 0)
+  const rawDamage = Array.isArray(damageInstances) && damageInstances.length > 0
+    ? damageInstances[damageInstances.length - 1]!._totalDamage
     : 0;
-
-  const skillAndLevels = data._skillAndLevels;
-  const classId = Array.isArray(skillAndLevels) && skillAndLevels.length > 0
-    ? (skillAndLevels[0]!._skill ?? 0)
-    : 0;
+  const damageTaken = typeof rawDamage === 'number' ? rawDamage : 0;
 
   return {
-    level, damageTaken, classId,
+    level, damageTaken,
     lastRunKills, lastRunSoulstones, lastRunRegularKills, lastRunEliteKills, lastRunBossKills, lastRunGold,
     lastRunDamageDealt, lastRunDuration
   };
@@ -141,7 +136,7 @@ function sumCareerStats(pastRunsData: PastRunData[]): {
  */
 export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload {
   const {
-    level, damageTaken, classId,
+    level, damageTaken,
     lastRunKills, lastRunSoulstones, lastRunRegularKills, lastRunEliteKills, lastRunBossKills, lastRunGold,
     lastRunDamageDealt, lastRunDuration
   } = getLastRunStats(data);
@@ -163,16 +158,14 @@ export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload
     skillIds.push(...equippedSkills);
     console.log('Extracted Skills (Loadout):', skillIds);
   }
-  // Pad to 5 if needed
-  while (skillIds.length < 5) {
-    skillIds.push(0);
-  }
+  // DO NOT PAD with 0s. The UI will just not render missing slots, or render them as empty if we prefer.
+  // The user explicitly asked to "show skills that are equipped", so if it's -1 it shouldn't show.
+  // By sending a shorter array, the UI map loop will just run fewer times.
 
   // Level should be from LevelAchieved of last run, never default to 1 if 0 is valid
   const finalLevel = level > 0 ? level : 1;
 
   return {
-    classId,
     level: finalLevel,
     damageTaken,
     careerSeconds: gameplayTime,

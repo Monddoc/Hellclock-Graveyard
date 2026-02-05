@@ -134,8 +134,8 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
       const wasExpanded = expanded;
       if (!wasExpanded) {
         setExpanded(true);
-        // Wait for animation
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Wait for animation (800ms) to ensure full expansion and layout stability
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
       // Export Configuration
@@ -146,12 +146,15 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         style: {
           margin: '60px', // Uniform padding to define the card boundary
           padding: '0',
-          borderColor: '#7f1d1d', // Force Red-900 border for export consistency
-          boxShadow: '0 0 40px rgba(185, 28, 28, 0.4)', // Bake in the red glow
+          borderColor: '#7f1d1d', // Force Red-900 border
+          borderWidth: '4px', // Explicitly thick border for visibility
+          borderStyle: 'solid',
           transform: 'scale(1)',
+          height: 'auto', // Allow it to grow naturally
+          overflow: 'visible', // Absolutely forbid clipping
         },
         width: tombstoneRef.current.offsetWidth + 120, // Content + Horizontal Margins (60px * 2)
-        height: tombstoneRef.current.scrollHeight + 250 // Content + Vertical Buffer to prevent clipping
+        height: tombstoneRef.current.scrollHeight + 120 // Matches margins, relying on scrollHeight being correct now
       });
 
       const a = document.createElement('a');
@@ -193,7 +196,8 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           y: expanded ? -8 : 0
         }}
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"), linear-gradient(to bottom, #1c1917, #0c0a09)`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"), linear-gradient(to bottom, #1c1917, #0c0a09)`,
+          backgroundAttachment: 'local', // Fixes the "moving background" jitter on expand
         }}
       >
         {/* Inner Content Container */}
@@ -254,9 +258,11 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
             </p>
           </div>
 
-          {/* Skills Footer - Always visible now */}
-          <div className="mb-2 flex justify-center gap-2 border-t border-stone-500/50 pt-3 w-full">
-            {skillIds.slice(0, 5).map((skillId, idx) => {
+          {/* Skills Footer - Only visible skills */}
+          <div className="mb-2 flex justify-center gap-2 border-t border-stone-500/50 pt-3 w-full min-h-[50px]">
+            {/* If no skills, show a placeholder or nothing? Prefer nothing to keep it clean, but min-height keeps layout stable */}
+            {skillIds.length === 0 && <span className="text-[10px] text-stone-600 italic py-2">No skills equipped</span>}
+            {skillIds.map((skillId, idx) => {
               const iconSrc = getSkillIconSrc(skillId);
               return (
                 <div

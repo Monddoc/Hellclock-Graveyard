@@ -39,7 +39,6 @@ export interface PlayerSaveData {
 
 /** Parsed result ready for DB insert (after validation + extraction) */
 export interface ExtractedDeathPayload {
-  classId: number;
   level: number;
   damageTaken: number;
   careerSeconds: number;
@@ -67,7 +66,6 @@ export interface DeathRecord {
   user_id: string;
   character_name: string;
   mourned_by?: string | null;
-  class_id: number;
   level: number;
   damage_taken: number | null;
   career_seconds: number | null;

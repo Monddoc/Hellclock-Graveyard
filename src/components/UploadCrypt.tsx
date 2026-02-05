@@ -96,7 +96,6 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
       user_id: user.id,
       mourned_by: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown Soul',
       character_name: sanitizedName,
-      class_id: payload.classId,
       level: payload.level,
       damage_taken: payload.damageTaken,
       career_seconds: payload.careerSeconds,
@@ -171,6 +170,13 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
               const text = reader.result as string;
               let data: unknown;
               try {
+                // Pre-check for scientific notation in raw text BEFORE parsing
+                // Regex looks for Pattern: Digit + [eE] + optional Plus/Minus + Digit. e.g. 1e5, 1.2E-3
+                if (/[0-9][eE][+-]?[0-9]/.test(text)) {
+                  setFileError('Scientific notation is not allowed. Please use standard numbers.');
+                  return;
+                }
+
                 data = JSON.parse(text) as unknown;
               } catch {
                 setFileError('Invalid JSON.');
@@ -184,8 +190,25 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
               }
 
               const extracted = extractDeathPayload(data as PlayerSaveData);
+
+              // Post-Extraction Validation
+              if (extracted.level > 50) {
+                setFileError('Validation Error: Level cannot exceed 50.');
+                return;
+              }
+              if (extracted.damageTaken <= 0) {
+                setFileError('Validation Error: Damage taken must be greater than 0.');
+                return;
+              }
+
+              // Recursive check for negative numbers in top-level fields
+              const hasNegative = Object.values(extracted).some(val => typeof val === 'number' && val < 0);
+              if (hasNegative) {
+                setFileError('Validation Error: Save file contains negative values.');
+                return;
+              }
+
               console.log('Extracted payload:', extracted);
-              setPayload(extracted);
               setRawJson(text);
               setHeroName('');
             };
