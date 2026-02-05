@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Skull, LogIn, LogOut } from 'lucide-react';
+import { Skull, LogIn, LogOut, Search } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import type { DeathRecord } from './types';
@@ -18,8 +18,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [sortOption, setSortOption] = useState<'latest' | 'respects' | 'playtime_high' | 'playtime_low' | 'kills'>('latest');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const sortedDeaths = [...deaths].sort((a, b) => {
+  const filteredDeaths = deaths.filter((death) => {
+    const term = searchTerm.toLowerCase();
+    const charName = death.character_name.toLowerCase();
+    const mourned = (death.mourned_by || '').toLowerCase();
+    return charName.includes(term) || mourned.includes(term);
+  });
+
+  const sortedDeaths = [...filteredDeaths].sort((a, b) => {
     switch (sortOption) {
       case 'respects':
         return (b.respects_paid || 0) - (a.respects_paid || 0);
@@ -203,7 +211,22 @@ export default function App() {
               >
                 {opt.label}
               </button>
+
             ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full max-w-md">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-4 w-4 text-stone-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by Hero or Mourner..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full rounded-full border border-stone-800 bg-stone-900/50 py-2 pl-10 pr-4 text-sm text-stone-200 placeholder-stone-600 focus:border-red-900 focus:ring-1 focus:ring-red-900 focus:outline-none"
+            />
           </div>
         </section>
 
@@ -278,6 +301,8 @@ export default function App() {
               {sortedDeaths.map((death) => (
                 <motion.li
                   key={death.id}
+                  initial="hidden"
+                  animate="visible"
                   variants={{
                     hidden: { opacity: 0, y: 12 },
                     visible: { opacity: 1, y: 0 },
