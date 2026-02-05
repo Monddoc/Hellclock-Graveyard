@@ -1,3 +1,7 @@
+// Tombstone.tsx
+// Displays a single death record as an interactive, expandable card.
+// Features: Dynamic SVG noise, equip-based skill rendering, and HTML-to-Image export.
+
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
@@ -5,7 +9,7 @@ import {
   Skull,
   User,
   Download,
-  Flame, // For candle
+  Flame,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Filter } from 'bad-words';
@@ -14,25 +18,23 @@ import type { DeathRecord } from '../types';
 import skillsData from '../assets/Skills.json';
 import defaultClassIcon from '../assets/icons/default_icon.png';
 
-// 1. Create a lookup map for standardizing skill rendering
+/** 
+ * Pre-compute skill icon paths from JSON resource.
+ * Optimization: Loading imports eagerly avoids async flickering during render.
+ */
 const skillIconMap = new Map<number, string>();
 skillsData.Skills.forEach((skill) => {
   skillIconMap.set(skill.id, skill.icon);
 });
 
-// 2. Load all icon images
 const iconImages = import.meta.glob('../assets/icons/*.png', { eager: true, as: 'url' });
 
 function getSkillIconSrc(skillId: number): string | undefined {
   const iconName = skillIconMap.get(skillId);
-  if (!iconName) return undefined;
-  // Construct path dynamically
-  const path = `../assets/icons/${iconName}.png`;
-  return iconImages[path];
+  return iconName ? iconImages[`../assets/icons/${iconName}.png`] : undefined;
 }
 
-
-
+/** Formats seconds into h/m string (e.g., "1h 30m"). */
 function formatDuration(seconds: number | null | undefined): string {
   if (seconds == null || Number.isNaN(seconds)) return '0h';
   const h = Math.floor(seconds / 3600);
@@ -42,6 +44,7 @@ function formatDuration(seconds: number | null | undefined): string {
   return `${h}h ${m}m`;
 }
 
+/** Formats large numbers with suffixes (1.2k, 1.5M). */
 function formatNumber(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return '0';
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
@@ -52,9 +55,7 @@ function formatNumber(n: number | null | undefined): string {
 
 interface TombstoneProps {
   death: DeathRecord;
-  /** Display name for "Mourned by" (e.g. Discord username); */
   mournedBy?: string | null;
-  /** Called after pay_respects or report_death so parent can refetch. */
   onUpdate?: () => void;
 }
 
@@ -74,9 +75,9 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
     checkRespectsStatus();
   }, [death.respects_paid, death.id]);
 
+  // Scroll into view on expansion
   useEffect(() => {
     if (expanded && actionsRef.current) {
-      // Wait for layout animation to likely complete (600ms to cover 500ms CSS transition)
       const timer = setTimeout(() => {
         actionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 350);
@@ -107,12 +108,14 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   const careerGold = death.career_gold != null ? Number(death.career_gold) : 0;
   const careerSoulstones = death.career_soulstones ?? 0;
 
-  // Last run stats (fallback to 0 if null for old records)
+  // Last Run Stats
   const lastRunKills = death.last_run_kills ?? 0;
+  const lastRunDamageDealt = death.last_run_damage_dealt != null ? Math.round(Number(death.last_run_damage_dealt)) : 0;
   const lastRunEliteKills = death.last_run_elite_kills ?? 0;
   const lastRunBossKills = death.last_run_boss_kills ?? 0;
   const skillIds = death.skill_ids || [0, 0, 0];
 
+  /** Handles the "Pay Respects" (Like) action. */
   async function handlePayRespects() {
     if (hasPaidRespects) return;
     setRespectLoading(true);
@@ -125,36 +128,35 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
     }
   }
 
+  /** Generates and downloads a high-res PNG of the card. */
   async function handleExport() {
     if (!tombstoneRef.current || exportLoading) return;
     setExportLoading(true);
 
     try {
-      // Temporarily expand to show all details
+      // Temporarily expand to show all details for the snapshot
       const wasExpanded = expanded;
       if (!wasExpanded) {
         setExpanded(true);
-        // Wait for animation (800ms) to ensure full expansion and layout stability
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 800)); // Wait for animation
       }
 
-      // Export Configuration
-      // Captures the component state exactly as rendered.
+      // Generate PNG with generous margins and explicit styling to avoid clipping
       const dataUrl = await toPng(tombstoneRef.current, {
         cacheBust: true,
-        pixelRatio: 2, // High resolution for readability
+        pixelRatio: 2,
         style: {
-          margin: '60px', // Uniform padding to define the card boundary
+          margin: '60px',
           padding: '0',
-          borderColor: '#7f1d1d', // Force Red-900 border
-          borderWidth: '4px', // Explicitly thick border for visibility
+          borderColor: '#7f1d1d',
+          borderWidth: '4px',
           borderStyle: 'solid',
           transform: 'scale(1)',
-          height: 'auto', // Allow it to grow naturally
-          overflow: 'visible', // Absolutely forbid clipping
+          height: 'auto',
+          overflow: 'visible',
         },
-        width: tombstoneRef.current.offsetWidth + 120, // Content + Horizontal Margins (60px * 2)
-        height: tombstoneRef.current.scrollHeight + 120 // Matches margins, relying on scrollHeight being correct now
+        width: tombstoneRef.current.offsetWidth + 120,
+        height: tombstoneRef.current.scrollHeight + 120
       });
 
       const a = document.createElement('a');
@@ -164,7 +166,6 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
 
       setExportLoading(false);
 
-      // Restore expanded state
       if (!wasExpanded) {
         setExpanded(false);
       }
@@ -177,7 +178,6 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
 
   return (
     <div ref={containerRef} className="group relative flex flex-col items-center gap-4">
-      {/* Unified Tombstone Slab */}
       <motion.article
         layout
         ref={tombstoneRef}
@@ -190,7 +190,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         }}
         initial={false}
         animate={{
-          height: expanded ? 'auto' : '480px', // Increased to accommodate bigger skills
+          height: expanded ? 'auto' : '480px',
           borderColor: expanded ? '#7f1d1d' : '#292524',
           boxShadow: expanded ? '0 0 40px rgba(185, 28, 28, 0.4)' : '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
           y: expanded ? -8 : 0
@@ -199,30 +199,28 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           backgroundAttachment: 'local',
         }}
       >
-        {/* Inner Content Container */}
         <div className="flex flex-col items-center p-6 text-center">
 
-          {/* Skull Icon */}
+          {/* Animated Skull Header */}
           <div className="mb-4">
             <div className="relative">
-              {/* Performance Opt: Replaced expensive 'blur-2xl' with a simpler radial gradient */}
+              {/* Glow Effect (Radial Gradient) */}
               <div
                 className="absolute inset-0 rounded-full transition-opacity duration-500"
                 style={{
                   background: 'radial-gradient(circle, rgba(220, 38, 38, 0.6) 0%, transparent 70%)',
                   opacity: expanded ? 0.6 : 0.2,
-                  transform: 'scale(1.5)', // Make it slightly larger to mimic the blur spread
+                  transform: 'scale(1.5)',
                 }}
               />
               <Skull
                 className="relative h-16 w-16 transition-colors duration-300"
-                style={{ color: '#ef4444' }} // Red-500
+                style={{ color: '#ef4444' }}
                 aria-hidden
               />
             </div>
           </div>
 
-          {/* Name & Title */}
           <div className="mb-6">
             <h3 className={`font-cinzel font-bold tracking-wider text-stone-100} whitespace-nowrap overflow-hidden text-ellipsis px-1`}>
               {death.character_name}
@@ -232,22 +230,27 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
             </p>
           </div>
 
-          {/* Class Badge */}
+          {/* Static Class Icon */}
           <div className="mb-6 flex items-center justify-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-stone-700 bg-stone-800/50 text-red-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] overflow-hidden">
               <img src={ClassIconSrc} alt="Class Icon" className="h-full w-full object-cover" />
             </div>
           </div>
 
-          {/* Main Stats */}
           <div className="mb-4 space-y-1 text-sm font-medium text-stone-400">
             <p className="text-stone-500">
               Lvl <span className="text-stone-200">{death.level}</span>
             </p>
-            <p className="text-sm font-semibold text-stone-400 pb-1">
+            <p className="text-sm font-semibold text-stone-400 pb-0.5">
               Slain by <span className="text-red-500 text-sm">{formatNumber(damage)}</span> Dmg
             </p>
-            <div className="flex justify-center gap-2 text-xs text-stone-500">
+            {/* Damage Dealt - Conditional Display */}
+            {lastRunDamageDealt > 0 && (
+              <p className="text-xs text-stone-500 pb-1">
+                Dealt <span className="text-stone-400">{formatNumber(lastRunDamageDealt)}</span> Dmg
+              </p>
+            )}
+            <div className={`flex justify-center gap-2 text-xs text-stone-500 ${lastRunDamageDealt === 0 ? 'pt-1' : ''}`}>
               <span><span className="text-stone-300">{formatNumber(lastRunKills)}</span> Kills</span>
               <span>·</span>
               <span><span className="text-orange-600">{formatNumber(lastRunEliteKills)}</span> Elites</span>
@@ -262,9 +265,8 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
             </p>
           </div>
 
-          {/* Skills Footer - Only visible skills */}
+          {/* Equipped Skills */}
           <div className="mb-2 flex justify-center gap-2 border-t border-stone-500/50 pt-3 w-full min-h-[50px]">
-            {/* If no skills, show a placeholder or nothing? Prefer nothing to keep it clean, but min-height keeps layout stable */}
             {skillIds.length === 0 && <span className="text-[10px] text-stone-600 italic py-2">No skills equipped</span>}
             {skillIds.map((skillId, idx) => {
               const iconSrc = getSkillIconSrc(skillId);
@@ -277,7 +279,6 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
                   {iconSrc ? (
                     <img src={iconSrc} alt={`Skill ${skillId}`} className="h-full w-full object-cover" />
                   ) : (
-                    // Fallback for empty or unknown
                     <span className="opacity-20 text-[10px]">{skillId > 0 ? '?' : '—'}</span>
                   )}
                 </div>

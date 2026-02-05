@@ -1,3 +1,7 @@
+// App.tsx
+// Main Application Entry Point.
+// Handles user authentication, database syncing, and the primary "Graveyard" view.
+
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Skull, LogIn, LogOut, Search } from 'lucide-react';
@@ -7,7 +11,7 @@ import type { DeathRecord } from './types';
 import UploadCrypt from './components/UploadCrypt';
 import Tombstone from './components/Tombstone';
 import FogLayer from './components/FogLayer';
-import AtmosphericLighting from './components/AtmosphericLighting'; // Lighting effect
+import AtmosphericLighting from './components/AtmosphericLighting';
 import { Lightbulb, LightbulbOff } from 'lucide-react';
 
 export default function App() {
@@ -33,7 +37,7 @@ export default function App() {
         return (b.respects_paid || 0) - (a.respects_paid || 0);
       case 'playtime_high':
         return (b.career_seconds || 0) - (a.career_seconds || 0);
-      case 'playtime_low': // For finding speedruns or quick deaths
+      case 'playtime_low': // Speedruns / Quick deaths
         return (a.career_seconds || 0) - (b.career_seconds || 0);
       case 'kills':
         return (b.career_kills || 0) - (a.career_kills || 0);
@@ -78,15 +82,15 @@ export default function App() {
   }, []);
 
   const [showUpload, setShowUpload] = useState(false);
-  // AtmosphericLighting handles its own mouse interactions efficiently.
 
-  // 1. Define the logic helper
+  /**
+   * Determines the OAuth redirect URL based on environment.
+   * Dynamically handles localhost operations to support variable Vite ports.
+   */
   const getRedirectUrl = () => {
-    // If we are running 'npm run dev' on your computer...
     if (import.meta.env.DEV) {
-      return 'http://localhost:5173/Hellclock-Graveyard/';
+      return `${window.location.origin}/Hellclock-Graveyard/`;
     }
-    // If we are built and deployed to GitHub...
     return 'https://monddoc.github.io/Hellclock-Graveyard/';
   };
 

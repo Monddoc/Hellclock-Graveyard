@@ -1,6 +1,6 @@
 /**
- * Generate a unique hash for a death submission (client-side).
- * Used for unique_hash column to prevent duplicate submissions.
+ * Utility: Client-side hash generation.
+ * Generates a SHA-256 hash to uniquely identify a death submission (User ID + Raw JSON).
  */
 export async function generateUniqueHash(payload: {
   userId: string;

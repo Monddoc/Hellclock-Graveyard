@@ -1,3 +1,6 @@
+// supabase.ts
+// Initializes and exports the shared Supabase client instance.
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';

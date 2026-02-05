@@ -1,3 +1,7 @@
+// UploadCrypt.tsx
+// Handles Drag & Drop file upload, validation, parsing, and submission of save files.
+// Interacts with Supabase 'deaths' table and enforces unique run hashes.
+
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileJson, Skull, AlertCircle, Copy } from 'lucide-react';
@@ -11,6 +15,7 @@ const filter = new Filter();
 
 const MAX_NAME_LENGTH = 20;
 
+/** Sanitizes input name: trims, max length check, and profanity filtering. */
 function sanitizeCharacterName(input: string): string {
   const trimmed = input.trim().slice(0, MAX_NAME_LENGTH);
   return filter.clean(trimmed) || 'Fallen Hero';
@@ -28,8 +33,8 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = useCallback((file: File) => {
+    // Reset state before processing new file
     setFileError(null);
     setPayload(null);
     setRawJson('');
@@ -37,13 +42,38 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
     setSubmitStatus('idle');
     setSubmitMessage('');
 
-    if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
       const text = reader.result as string;
       let data: unknown;
       try {
+        // Pre-check for scientific notation on critical numeric fields.
+        // Full-file checks risk false positives on non-numeric strings (e.g. hashes).
+        const NUMERIC_FIELDS_TO_CHECK = [
+          'LevelAchieved',
+          '_totalDamage',
+          'EnemiesDefeated',
+          'SoulStonesCollected',
+          'RegularEnemiesDefeated',
+          'EliteEnemiesDefeated',
+          'BossEnemiesDefeated',
+          'GoldGained',
+          'DamageDealt',
+          'RunTime',
+          'gameplayTime',
+          'cumulativeTotalRuns'
+        ];
+
+        for (const key of NUMERIC_FIELDS_TO_CHECK) {
+          // Pattern: "Key" : (spaces) (number with e/E)
+          // regex: /"Key"\s*:\s*[-]?\d+(\.\d+)?[eE]/
+          const regex = new RegExp(`"${key}"\\s*:\\s*[-]?\\d+(\\.\\d+)?[eE]`);
+          if (regex.test(text)) {
+            setFileError(`Scientific notation detected in field '${key}'. Please use standard numbers.`);
+            return;
+          }
+        }
+
         data = JSON.parse(text) as unknown;
       } catch {
         setFileError('Invalid JSON.');
@@ -56,7 +86,32 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
         return;
       }
 
-      const extracted = extractDeathPayload(data as PlayerSaveData);
+      let extracted: ExtractedDeathPayload;
+      try {
+        extracted = extractDeathPayload(data as PlayerSaveData);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to parse save file attributes.';
+        setFileError(msg);
+        return;
+      }
+
+      // Post-Extraction Validation
+      if (extracted.level > 50) {
+        setFileError('Validation Error: Level cannot exceed 50.');
+        return;
+      }
+      if (extracted.damageTaken < 1) {
+        setFileError('Validation Error: Damage taken must be at least 1.');
+        return;
+      }
+
+      // Recursive check for negative numbers in top-level fields
+      const hasNegative = Object.values(extracted).some(val => typeof val === 'number' && val < 0);
+      if (hasNegative) {
+        setFileError('Validation Error: Save file contains negative values.');
+        return;
+      }
+
       console.log('Extracted payload:', extracted);
       setPayload(extracted);
       setRawJson(text);
@@ -64,6 +119,11 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
     };
     reader.readAsText(file);
   }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
 
   const handleSubmit = useCallback(async () => {
     if (!payload || !rawJson) return;
@@ -156,75 +216,11 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
           e.preventDefault();
           e.stopPropagation();
           const file = e.dataTransfer.files?.[0];
-          if (file) {
-            // Reset state before processing new file
-            setFileError(null);
-            setPayload(null);
-            setRawJson('');
-            setHeroName('');
-            setSubmitStatus('idle');
-            setSubmitMessage('');
-
-            const reader = new FileReader();
-            reader.onload = () => {
-              const text = reader.result as string;
-              let data: unknown;
-              try {
-                // Pre-check for scientific notation in raw text BEFORE parsing
-                // Regex looks for Pattern: Digit + [eE] + optional Plus/Minus + Digit. e.g. 1e5, 1.2E-3
-                if (/[0-9][eE][+-]?[0-9]/.test(text)) {
-                  setFileError('Scientific notation is not allowed. Please use standard numbers.');
-                  return;
-                }
-
-                data = JSON.parse(text) as unknown;
-              } catch {
-                setFileError('Invalid JSON.');
-                return;
-              }
-
-              const validationError = validateSaveFile(data);
-              if (validationError) {
-                setFileError(validationError.message);
-                return;
-              }
-
-              let extracted: ExtractedDeathPayload;
-              try {
-                extracted = extractDeathPayload(data as PlayerSaveData);
-              } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : 'Failed to parse save file attributes.';
-                setFileError(msg);
-                return;
-              }
-
-              // Post-Extraction Validation
-              if (extracted.level > 50) {
-                setFileError('Validation Error: Level cannot exceed 50.');
-                return;
-              }
-              if (extracted.damageTaken < 1) {
-                setFileError('Validation Error: Damage taken must be at least 1.');
-                return;
-              }
-
-              // Recursive check for negative numbers in top-level fields
-              const hasNegative = Object.values(extracted).some(val => typeof val === 'number' && val < 0);
-              if (hasNegative) {
-                setFileError('Validation Error: Save file contains negative values.');
-                return;
-              }
-
-              console.log('Extracted payload:', extracted);
-              setRawJson(text);
-              setHeroName('');
-            };
-            reader.readAsText(file);
-          }
+          if (file) processFile(file);
         }}
         onClick={() => {
-          // We use a div instead of a label to avoid event propagation issues with nested interactive elements (like the copy button).
-          // Manually triggering the hidden input maintains the standard file-picker UX.
+          // Use div instead of label to prevent event propagation issues with nested interactive elements.
+          // Manually triggering the hidden input maintains standard file-picker UX.
           const input = document.getElementById('save-file-input') as HTMLInputElement;
           if (input) input.click();
         }}

@@ -1,6 +1,5 @@
-/**
- * Hell Clock — PlayerSave.json interface (The Graveyard / Upload Crypt)
- */
+// types.ts
+// Shared TypeScript interfaces for Save File Parsing (UploadCrypt) and Database Records (Tombstone).
 
 export interface StatCounters {
   [key: string]: number;
@@ -37,7 +36,7 @@ export interface PlayerSaveData {
   [key: string]: unknown;
 }
 
-/** Parsed result ready for DB insert (after validation + extraction) */
+/** Validated payload structure ready for database insertion. */
 export interface ExtractedDeathPayload {
   level: number;
   damageTaken: number;
@@ -48,8 +47,8 @@ export interface ExtractedDeathPayload {
   careerBosses: number;
   careerGold: number;
   careerSoulstones: number;
-  skillIds: number[]; // Top 3 skills by level
-  // NEW: Last run stats
+  skillIds: number[]; // Array of equipped skill IDs (max 5)
+  // Last Run Specifics
   lastRunKills: number;
   lastRunSoulstones: number;
   lastRunRegularKills: number;
@@ -60,7 +59,10 @@ export interface ExtractedDeathPayload {
   lastRunDuration: number;
 }
 
-/** Death record as stored in Supabase / displayed in graveyard */
+/** 
+ * Represents a single death record in the supabase 'deaths' table.
+ * Used for rendering Tombstone cards.
+ */
 export interface DeathRecord {
   id: string;
   user_id: string;

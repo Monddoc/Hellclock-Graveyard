@@ -66,14 +66,20 @@ function getLastRunStats(data: PlayerSaveData): {
   // Strict check: Level must exist
   const level = getRequiredValue(cntList, 'LevelAchieved');
 
-  // Last run specific metrics - ALL STRICTLY REQUIRED
-  const lastRunKills = getRequiredValue(cntList, 'EnemiesDefeated');
-  const lastRunSoulstones = getRequiredValue(cntList, 'SoulStonesCollected');
-  const lastRunRegularKills = getRequiredValue(cntList, 'RegularEnemiesDefeated');
-  const lastRunEliteKills = getRequiredValue(cntList, 'EliteEnemiesDefeated');
-  const lastRunBossKills = getRequiredValue(cntList, 'BossEnemiesDefeated');
-  const lastRunGold = getRequiredValue(aggList, 'GoldGained');
-  const lastRunDamageDealt = getRequiredValue(aggList, 'DamageDealt');
+  // Last run specific metrics
+  // Kills are optional (defaults to 0) because a 0-kill run might omit them
+  const lastRunKills = getValueFromSerializedList(cntList, 'EnemiesDefeated');
+  const lastRunRegularKills = getValueFromSerializedList(cntList, 'RegularEnemiesDefeated');
+  const lastRunEliteKills = getValueFromSerializedList(cntList, 'EliteEnemiesDefeated');
+  const lastRunBossKills = getValueFromSerializedList(cntList, 'BossEnemiesDefeated');
+
+  // Optional metrics (default to 0 if missing).
+  const lastRunSoulstones = getValueFromSerializedList(cntList, 'SoulStonesCollected');
+  const lastRunGold = getValueFromSerializedList(aggList, 'GoldGained');
+
+  // Damage Dealt is stored but not displayed on the Tombstone.
+  // Defaults to 0 to support pacifist runs.
+  const lastRunDamageDealt = getValueFromSerializedList(aggList, 'DamageDealt');
   const lastRunDuration = getRequiredValue(aggList, 'RunTime');
 
   const damageInstances = lastRun._lastDamageInstances;
@@ -174,12 +180,12 @@ export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload
   }
   const careerRuns = data.cumulativeTotalRuns;
 
-  // FIX: Use skillSlots to get the actual EQUIPPED skills (Loadout), not just unlocked ones (Progression)
+  // Extract equipped active skills (Loadout) rather than unlocked skills (Progression).
   const skillSlots = data.skillSlots;
   const skillIds: number[] = [];
 
   if (Array.isArray(skillSlots)) {
-    // Filter out empty slots (_skillHashId === -1) and map to IDs
+    // Filter out empty slots (_skillHashId === -1) and map to active IDs
     const equippedSkills = (skillSlots as SkillSlot[])
       .filter((slot) => slot._skillHashId !== -1)
       .map((slot) => slot._skillHashId);
@@ -187,11 +193,9 @@ export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload
     skillIds.push(...equippedSkills);
     console.log('Extracted Skills (Loadout):', skillIds);
   }
-  // DO NOT PAD with 0s. The UI will just not render missing slots, or render them as empty if we prefer.
-  // The user explicitly asked to "show skills that are equipped", so if it's -1 it shouldn't show.
-  // By sending a shorter array, the UI map loop will just run fewer times.
+  // Note: Missing slots are not padded; the UI handles variable skill counts.
 
-  // Level should be from LevelAchieved of last run, never default to 1 if 0 is valid
+  // Ensure Level is at least 1 for consistency
   const finalLevel = level > 0 ? level : 1;
 
   return {
