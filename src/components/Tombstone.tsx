@@ -66,10 +66,24 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   const [hasPaidRespects, setHasPaidRespects] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setRespects(death.respects_paid);
     checkRespectsStatus();
   }, [death.respects_paid, death.id]);
+
+  useEffect(() => {
+    if (expanded && actionsRef.current) {
+      // Wait for layout animation to likely complete (600ms to cover 500ms CSS transition)
+      const timer = setTimeout(() => {
+        actionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [expanded]);
+
 
   async function checkRespectsStatus() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -159,7 +173,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   }
 
   return (
-    <div className="group relative flex flex-col items-center gap-4">
+    <div ref={containerRef} className="group relative flex flex-col items-center gap-4">
       {/* Unified Tombstone Slab */}
       <motion.article
         layout
@@ -168,6 +182,9 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         onHoverStart={() => setExpanded(true)}
         onHoverEnd={() => setExpanded(false)}
         onClick={() => setExpanded(!expanded)}
+        onLayoutAnimationComplete={() => {
+          // Scroll handled by useEffect to avoid race conditions
+        }}
         initial={false}
         animate={{
           height: expanded ? 'auto' : '480px', // Increased to accommodate bigger skills
@@ -290,7 +307,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
       </motion.article>
 
       {/* External Actions (Candle & Download) */}
-      <div className="flex items-center gap-4">
+      <div ref={actionsRef} className="flex items-center gap-4">
         {/* Candle (Pay Respects) */}
         <button
           onClick={handlePayRespects}
