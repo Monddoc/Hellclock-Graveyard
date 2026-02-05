@@ -63,23 +63,29 @@ function getLastRunStats(data: PlayerSaveData): {
   const cntList = (lastRun._statCounters as { _serializedList?: Array<{ Key: string; Value: number }> })?._serializedList;
   const aggList = (lastRun._statAggregators as { _serializedList?: Array<{ Key: string; Value: number }> })?._serializedList;
 
-  const level = getValueFromSerializedList(cntList, 'LevelAchieved');
+  // Strict check: Level must exist
+  const level = getRequiredValue(cntList, 'LevelAchieved');
 
-  // Last run specific metrics
-  const lastRunKills = getValueFromSerializedList(cntList, 'EnemiesDefeated');
-  const lastRunSoulstones = getValueFromSerializedList(cntList, 'SoulStonesCollected');
-  const lastRunRegularKills = getValueFromSerializedList(cntList, 'RegularEnemiesDefeated');
-  const lastRunEliteKills = getValueFromSerializedList(cntList, 'EliteEnemiesDefeated');
-  const lastRunBossKills = getValueFromSerializedList(cntList, 'BossEnemiesDefeated');
-  const lastRunGold = getValueFromSerializedList(aggList, 'GoldGained');
-  const lastRunDamageDealt = getValueFromSerializedList(aggList, 'DamageDealt');
-  const lastRunDuration = getValueFromSerializedList(aggList, 'RunTime');
+  // Last run specific metrics - ALL STRICTLY REQUIRED
+  const lastRunKills = getRequiredValue(cntList, 'EnemiesDefeated');
+  const lastRunSoulstones = getRequiredValue(cntList, 'SoulStonesCollected');
+  const lastRunRegularKills = getRequiredValue(cntList, 'RegularEnemiesDefeated');
+  const lastRunEliteKills = getRequiredValue(cntList, 'EliteEnemiesDefeated');
+  const lastRunBossKills = getRequiredValue(cntList, 'BossEnemiesDefeated');
+  const lastRunGold = getRequiredValue(aggList, 'GoldGained');
+  const lastRunDamageDealt = getRequiredValue(aggList, 'DamageDealt');
+  const lastRunDuration = getRequiredValue(aggList, 'RunTime');
 
   const damageInstances = lastRun._lastDamageInstances;
-  const rawDamage = Array.isArray(damageInstances) && damageInstances.length > 0
-    ? damageInstances[damageInstances.length - 1]!._totalDamage
-    : 0;
-  const damageTaken = typeof rawDamage === 'number' ? rawDamage : 0;
+  if (!Array.isArray(damageInstances) || damageInstances.length === 0) {
+    throw new Error('Validation Error: No damage history found. (Did you take damage?)');
+  }
+
+  const lastInstance = damageInstances[damageInstances.length - 1];
+  if (typeof lastInstance?._totalDamage !== 'number') {
+    throw new Error('Validation Error: Missing _totalDamage in last damage instance.');
+  }
+  const damageTaken = lastInstance._totalDamage;
 
   return {
     level, damageTaken,
@@ -98,6 +104,20 @@ function getValueFromSerializedList(
   if (!Array.isArray(serializedList)) return 0;
   const item = serializedList.find((x) => x.Key === key);
   return typeof item?.Value === 'number' ? item.Value : 0;
+}
+
+function getRequiredValue(
+  serializedList: Array<{ Key: string; Value: number }> | undefined,
+  key: string
+): number {
+  if (!Array.isArray(serializedList)) {
+    throw new Error(`Validation Error: Missing stat block containing ${key}.`);
+  }
+  const item = serializedList.find((x) => x.Key === key);
+  if (typeof item?.Value !== 'number') {
+    throw new Error(`Validation Error: Missing required field '${key}'.`);
+  }
+  return item.Value;
 }
 
 /** 
@@ -142,8 +162,17 @@ export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload
   } = getLastRunStats(data);
   const { totalGold, totalSoulstones, totalKills, totalEliteKills, totalBosses } = sumCareerStats(data.pastRunsData);
 
-  const gameplayTime = typeof data.gameplayTime === 'number' ? data.gameplayTime : 0;
-  const careerRuns = typeof data.cumulativeTotalRuns === 'number' ? data.cumulativeTotalRuns : 0;
+
+
+  if (typeof data.gameplayTime !== 'number') {
+    throw new Error('Validation Error: Missing required field path \'gameplayTime\'');
+  }
+  const gameplayTime = data.gameplayTime;
+
+  if (typeof data.cumulativeTotalRuns !== 'number') {
+    throw new Error('Validation Error: Missing required field path \'cumulativeTotalRuns\'');
+  }
+  const careerRuns = data.cumulativeTotalRuns;
 
   // FIX: Use skillSlots to get the actual EQUIPPED skills (Loadout), not just unlocked ones (Progression)
   const skillSlots = data.skillSlots;

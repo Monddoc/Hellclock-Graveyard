@@ -189,7 +189,14 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
                 return;
               }
 
-              const extracted = extractDeathPayload(data as PlayerSaveData);
+              let extracted: ExtractedDeathPayload;
+              try {
+                extracted = extractDeathPayload(data as PlayerSaveData);
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Failed to parse save file attributes.';
+                setFileError(msg);
+                return;
+              }
 
               // Post-Extraction Validation
               if (extracted.level > 50) {
