@@ -181,7 +181,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
       <motion.article
         layout
         ref={tombstoneRef}
-        className="relative w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500"
+        className="relative w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500 will-change-transform bg-card-texture"
         onHoverStart={() => setExpanded(true)}
         onHoverEnd={() => setExpanded(false)}
         onClick={() => setExpanded(!expanded)}
@@ -196,8 +196,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           y: expanded ? -8 : 0
         }}
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"), linear-gradient(to bottom, #1c1917, #0c0a09)`,
-          backgroundAttachment: 'local', // Fixes the "moving background" jitter on expand
+          backgroundAttachment: 'local',
         }}
       >
         {/* Inner Content Container */}
@@ -206,9 +205,14 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           {/* Skull Icon */}
           <div className="mb-4">
             <div className="relative">
+              {/* Performance Opt: Replaced expensive 'blur-2xl' with a simpler radial gradient */}
               <div
-                className="absolute inset-0 rounded-full blur-2xl transition-opacity duration-500"
-                style={{ backgroundColor: '#dc2626', opacity: expanded ? 0.4 : 0.1 }}
+                className="absolute inset-0 rounded-full transition-opacity duration-500"
+                style={{
+                  background: 'radial-gradient(circle, rgba(220, 38, 38, 0.6) 0%, transparent 70%)',
+                  opacity: expanded ? 0.6 : 0.2,
+                  transform: 'scale(1.5)', // Make it slightly larger to mimic the blur spread
+                }}
               />
               <Skull
                 className="relative h-16 w-16 transition-colors duration-300"

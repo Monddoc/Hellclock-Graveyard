@@ -196,8 +196,8 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
                 setFileError('Validation Error: Level cannot exceed 50.');
                 return;
               }
-              if (extracted.damageTaken <= 0) {
-                setFileError('Validation Error: Damage taken must be greater than 0.');
+              if (extracted.damageTaken < 1) {
+                setFileError('Validation Error: Damage taken must be at least 1.');
                 return;
               }
 
