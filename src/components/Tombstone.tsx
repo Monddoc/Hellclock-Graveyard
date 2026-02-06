@@ -53,6 +53,8 @@ function formatNumber(n: number | null | undefined): string {
   return n.toLocaleString();
 }
 
+const NOISE_BASE64 = "url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMjAwIDIwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC42NScgbnVtT2N0YXZlcz0nMycgc3RpdGNoVGlsZXM9J3N0aXRjaCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScgb3BhY2l0eT0nMC4xNScvPjwvc3ZnPg==')";
+
 interface TombstoneProps {
   death: DeathRecord;
   mournedBy?: string | null;
@@ -154,12 +156,11 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
     setExportLoading(true);
 
     try {
-      // Temporarily expand to show all details for the snapshot
       const wasExpanded = expanded;
-      if (!wasExpanded) {
-        setExpanded(true);
-        await new Promise((resolve) => setTimeout(resolve, 800)); // Wait for animation
-      }
+
+      // Always expand and wait for animation to complete to ensure full content is visible
+      setExpanded(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Generate PNG with generous margins and explicit styling to avoid clipping
       const dataUrl = await toPng(tombstoneRef.current, {
@@ -174,10 +175,19 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           transform: 'scale(1)',
           height: 'auto',
           overflow: 'visible',
+          backgroundImage: `${NOISE_BASE64}, linear-gradient(to bottom, transparent, #0c0a09)`,
         },
         width: tombstoneRef.current.offsetWidth + 120,
-        height: tombstoneRef.current.scrollHeight + 120
-      });
+        height: tombstoneRef.current.scrollHeight + 120,
+        onClone: (node: HTMLElement) => {
+          // Explicitly re-apply texture to base in the clone
+          const base = node.querySelector('.tombstone-base-visual') as HTMLElement;
+          if (base) {
+            base.style.backgroundImage = NOISE_BASE64;
+            base.style.backgroundAttachment = 'scroll'; // Prevent 'local' issues in canvas
+          }
+        }
+      } as any);
 
       const a = document.createElement('a');
       a.href = dataUrl;
@@ -202,9 +212,9 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         layout
         ref={tombstoneRef}
         className="relative w-full max-w-[300px] rounded-t-[10rem] rounded-b-md border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500 will-change-transform bg-card-texture"
-        onHoverStart={() => setExpanded(true)}
-        onHoverEnd={() => setExpanded(false)}
-        onClick={() => setExpanded(!expanded)}
+        onHoverStart={() => !exportLoading && setExpanded(true)}
+        onHoverEnd={() => !exportLoading && setExpanded(false)}
+        onClick={() => !exportLoading && setExpanded(!expanded)}
         onLayoutAnimationComplete={() => {
           // Scroll handled by useEffect to avoid race conditions
         }}
@@ -224,11 +234,13 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           Positioned absolutely at the bottom, extending outwards.
         */}
         <div
-          className="absolute -bottom-[2px] -left-3 -right-3 h-[24px] rounded-b-sm rounded-t-sm border-2 border-t-0 bg-[#0c0a09] bg-card-texture-base shadow-xl transition-colors duration-500"
+          className="tombstone-base-visual absolute -bottom-[2px] -left-3 -right-3 h-[24px] rounded-b-sm rounded-t-sm border-2 border-t-0 bg-[#0c0a09] bg-card-texture-base shadow-xl transition-colors duration-500"
           style={{
             borderColor: expanded ? '#7f1d1d' : '#292524',
             zIndex: -1, // Behind the main card border
-            backgroundAttachment: 'local',
+            // backgroundAttachment removed for safer export, texture provided by class + inline
+            // Use Base64 texture for robust export
+            backgroundImage: NOISE_BASE64
           }}
         />
 
