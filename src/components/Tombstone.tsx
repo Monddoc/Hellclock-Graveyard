@@ -67,7 +67,6 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   const [hasPaidRespects, setHasPaidRespects] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,11 +79,10 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
     if (expanded && actionsRef.current) {
       const timer = setTimeout(() => {
         actionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 350);
+      }, 500); // Increased delay slightly to match new 0.5s animation duration
       return () => clearTimeout(timer);
     }
   }, [expanded]);
-
 
   async function checkRespectsStatus() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -199,11 +197,11 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   }
 
   return (
-    <div ref={containerRef} className="group relative flex flex-col items-center gap-4">
+    <div className="group relative flex flex-col items-center gap-4">
       <motion.article
         layout
         ref={tombstoneRef}
-        className="relative w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500 will-change-transform bg-card-texture"
+        className="relative w-full max-w-[300px] rounded-t-[10rem] rounded-b-md border-2 border-stone-800 bg-stone-900 shadow-2xl transition-all duration-500 will-change-transform bg-card-texture"
         onHoverStart={() => setExpanded(true)}
         onHoverEnd={() => setExpanded(false)}
         onClick={() => setExpanded(!expanded)}
@@ -212,7 +210,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
         }}
         initial={false}
         animate={{
-          height: expanded ? 'auto' : '480px',
+          height: expanded ? 'auto' : '520px',
           borderColor: expanded ? '#7f1d1d' : '#292524',
           boxShadow: expanded ? '0 0 40px rgba(185, 28, 28, 0.4)' : '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
           y: expanded ? -8 : 0
@@ -221,7 +219,23 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           backgroundAttachment: 'local',
         }}
       >
-        <div className="flex flex-col items-center p-6 text-center">
+        {/* 
+          Visual Base (Plinth) - Widens the bottom.
+          Positioned absolutely at the bottom, extending outwards.
+        */}
+        <div
+          className="absolute -bottom-[2px] -left-3 -right-3 h-[24px] rounded-b-sm rounded-t-sm border-2 border-t-0 bg-[#0c0a09] bg-card-texture-base shadow-xl transition-colors duration-500"
+          style={{
+            borderColor: expanded ? '#7f1d1d' : '#292524',
+            zIndex: -1, // Behind the main card border
+            backgroundAttachment: 'local',
+          }}
+        />
+
+        {/* Inner Engraved Border */}
+        <div className="pointer-events-none absolute inset-3 z-10 rounded-t-[9rem] rounded-b-sm border-2 border-stone-800/60 opacity-70 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]" />
+
+        <div className="relative z-10 flex flex-col items-center px-6 pb-6 pt-12 text-center w-full">
 
           {/* Animated Skull Header */}
           <div className="mb-4">
@@ -244,7 +258,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
           </div>
 
           <div className="mb-6">
-            <h3 className={`font-cinzel font-bold tracking-wider text-stone-100} whitespace-nowrap overflow-hidden text-ellipsis px-1`}>
+            <h3 className={`font-cinzel font-bold tracking-wider text-stone-100 whitespace-nowrap overflow-hidden text-ellipsis px-1 max-w-full`}>
               {death.character_name}
             </h3>
             <p className="font-cinzel font-bold uppercase tracking-[0.2em] text-red-700/80">
@@ -315,7 +329,14 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
             className="w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: expanded ? 1 : 0, height: expanded ? 'auto' : 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{
+              opacity: {
+                duration: expanded ? 0.5 : 0.05, // Almost instant fade out on collapse
+                ease: 'easeInOut',
+                delay: expanded ? 0.2 : 0 // Delay only on expand
+              },
+              height: { duration: 0.5, ease: 'easeInOut' }
+            }}
           >
             <div className="mt-2 border-t border-stone-500/50 pt-2 text-left text-xs space-y-2 text-stone-400">
               <p className="text-[10px] text-center uppercase tracking-widest text-stone-400 pt-2 font-semibold">Career Totals</p>
@@ -342,7 +363,7 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
       </motion.article>
 
       {/* External Actions (Candle & Download) */}
-      <div ref={actionsRef} className="flex items-center gap-4">
+      <div ref={actionsRef} className="flex items-center gap-4 pt-2">
         {/* Candle (Pay Respects) */}
         <button
           onClick={handlePayRespects}

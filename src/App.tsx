@@ -111,7 +111,7 @@ export default function App() {
   }
 
   return (
-    <div className="relative min-h-screen font-sans text-stone-200">
+    <div className={`relative min-h-screen font-sans text-stone-200 ${showLighting ? 'cursor-lantern' : ''}`}>
       <div className="noise-overlay" />
       <FogLayer />
       {showLighting && <AtmosphericLighting />}
