@@ -9,8 +9,14 @@ export interface StatAggregators {
   [key: string]: number;
 }
 
+export interface DamageBase {
+  EDamageTypeDefinition: number;
+  [key: string]: unknown;
+}
+
 export interface LastDamageInstance {
   _totalDamage: number;
+  _damageBases?: DamageBase[];
   [key: string]: unknown;
 }
 
@@ -57,6 +63,7 @@ export interface ExtractedDeathPayload {
   lastRunGold: number;
   lastRunDamageDealt: number;
   lastRunDuration: number;
+  lastRunDamageType: number; // 0=Physical, 1=Fire, 2=Plague, 3=Lightning
 }
 
 /** 
@@ -90,6 +97,7 @@ export interface DeathRecord {
   last_run_elite_kills: number | null;
   last_run_boss_kills: number | null;
   last_run_gold: number | null;
+  last_run_damage_type: number | null;
   last_run_damage_dealt: number | null;
   last_run_duration: number | null;
 }

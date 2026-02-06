@@ -16,8 +16,12 @@ const filter = new Filter();
 const MAX_NAME_LENGTH = 20;
 
 /** Sanitizes input name: trims, max length check, and profanity filtering. */
+/** Sanitizes input name: trims, restricts to ASCII (A-Z, 0-9, symbols), and filters profanity. */
 function sanitizeCharacterName(input: string): string {
-  const trimmed = input.trim().slice(0, MAX_NAME_LENGTH);
+  // Remove any character that is NOT: a-z, A-Z, 0-9, space, hyphen, underscore, or apostrophe.
+  // This effectively blocks Cyrillic, Nordic/Accent characters, and Emojis.
+  const asciiOnly = input.replace(/[^a-zA-Z0-9\s\-_']/g, '');
+  const trimmed = asciiOnly.trim().slice(0, MAX_NAME_LENGTH);
   return filter.clean(trimmed) || 'Fallen Hero';
 }
 
@@ -61,7 +65,8 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
           'DamageDealt',
           'RunTime',
           'gameplayTime',
-          'cumulativeTotalRuns'
+          'cumulativeTotalRuns',
+          'EDamageTypeDefinition'
         ];
 
         for (const key of NUMERIC_FIELDS_TO_CHECK) {
@@ -175,6 +180,7 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
       last_run_gold: payload.lastRunGold,
       last_run_damage_dealt: payload.lastRunDamageDealt,
       last_run_duration: payload.lastRunDuration,
+      last_run_damage_type: payload.lastRunDamageType,
       unique_hash: uniqueHash,
     };
     console.log('Inserting data:', insertData);

@@ -22,6 +22,9 @@ export interface Database {
           respects_paid: number;
           report_count: number;
           skill_ids: number[] | null;
+          last_run_damage_dealt: number | null;
+          last_run_duration: number | null;
+          last_run_damage_type: number | null;
         };
         Insert: {
           id?: string;
@@ -41,7 +44,9 @@ export interface Database {
           unique_hash: string;
           respects_paid?: number;
           report_count?: number;
-          skill_ids?: number[] | null;
+          last_run_damage_dealt?: number | null;
+          last_run_duration?: number | null;
+          last_run_damage_type?: number | null;
         };
         Update: Partial<Database['public']['Tables']['deaths']['Insert']>;
       };

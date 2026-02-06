@@ -115,6 +115,28 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
   const lastRunBossKills = death.last_run_boss_kills ?? 0;
   const skillIds = death.skill_ids || [0, 0, 0];
 
+  /** Resolves damage type ID to color class. */
+  function getDamageColor(typeId: number | null | undefined): string {
+    switch (typeId) {
+      case 1: return 'text-orange-500'; // Fire
+      case 2: return 'text-emerald-500'; // Plague
+      case 3: return 'text-cyan-400';   // Lightning
+      case 0:
+      default: return 'text-red-500';   // Physical
+    }
+  }
+
+  /** Resolves damage type ID to display label. */
+  function getDamageLabel(typeId: number | null | undefined): string {
+    switch (typeId) {
+      case 1: return 'Fire';
+      case 2: return 'Plague';
+      case 3: return 'Lightning';
+      case 0:
+      default: return 'Physical';
+    }
+  }
+
   /** Handles the "Pay Respects" (Like) action. */
   async function handlePayRespects() {
     if (hasPaidRespects) return;
@@ -242,7 +264,9 @@ export default function Tombstone({ death, mournedBy, onUpdate }: TombstoneProps
               Lvl <span className="text-stone-200">{death.level}</span>
             </p>
             <p className="text-sm font-semibold text-stone-400 pb-0.5">
-              Slain by <span className="text-red-500 text-sm">{formatNumber(damage)}</span> Dmg
+              Slain by <span className={`${getDamageColor(death.last_run_damage_type)} text-sm`}>
+                {formatNumber(damage)} {getDamageLabel(death.last_run_damage_type)}
+              </span> Dmg
             </p>
             {/* Damage Dealt - Conditional Display */}
             {lastRunDamageDealt > 0 && (

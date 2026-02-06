@@ -56,6 +56,7 @@ function getLastRunStats(data: PlayerSaveData): {
   lastRunGold: number;
   lastRunDamageDealt: number;
   lastRunDuration: number;
+  lastRunDamageType: number;
 } {
   const pastRuns = data.pastRunsData;
   const lastRun = pastRuns[pastRuns.length - 1]!;
@@ -93,8 +94,15 @@ function getLastRunStats(data: PlayerSaveData): {
   }
   const damageTaken = lastInstance._totalDamage;
 
+  // Extract Damage Type (0=Physical, 1=Fire, 2=Plague, 3=Lightning).
+  // It is nested inside _damageBases array.
+  const lastDamageBase = lastInstance._damageBases?.[0];
+  const lastRunDamageType = typeof lastDamageBase?.EDamageTypeDefinition === 'number'
+    ? lastDamageBase.EDamageTypeDefinition
+    : 0;
+
   return {
-    level, damageTaken,
+    level, damageTaken, lastRunDamageType,
     lastRunKills, lastRunSoulstones, lastRunRegularKills, lastRunEliteKills, lastRunBossKills, lastRunGold,
     lastRunDamageDealt, lastRunDuration
   };
@@ -162,7 +170,7 @@ function sumCareerStats(pastRunsData: PastRunData[]): {
  */
 export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload {
   const {
-    level, damageTaken,
+    level, damageTaken, lastRunDamageType,
     lastRunKills, lastRunSoulstones, lastRunRegularKills, lastRunEliteKills, lastRunBossKills, lastRunGold,
     lastRunDamageDealt, lastRunDuration
   } = getLastRunStats(data);
@@ -217,5 +225,6 @@ export function extractDeathPayload(data: PlayerSaveData): ExtractedDeathPayload
     lastRunGold,
     lastRunDamageDealt,
     lastRunDuration,
+    lastRunDamageType,
   };
 }
