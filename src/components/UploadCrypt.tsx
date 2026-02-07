@@ -159,7 +159,7 @@ export default function UploadCrypt({ onUploadSuccess }: UploadCryptProps) {
 
     const insertData = {
       user_id: user.id,
-      mourned_by: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown Soul',
+      mourned_by: user.user_metadata?.username || user.email?.split('@')[0] || 'Unknown Soul',
       character_name: sanitizedName,
       level: payload.level,
       damage_taken: payload.damageTaken,

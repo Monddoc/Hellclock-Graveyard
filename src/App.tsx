@@ -83,28 +83,19 @@ export default function App() {
 
   const [showUpload, setShowUpload] = useState(false);
 
-  /**
-   * Determines the OAuth redirect URL based on environment.
-   * Dynamically handles localhost operations to support variable Vite ports.
-   */
-  const getRedirectUrl = () => {
-    if (import.meta.env.DEV) {
-      return `${window.location.origin}/Hellclock-Graveyard/`;
-    }
-    return 'https://monddoc.github.io/Hellclock-Graveyard/';
-  };
+  const handleDiscordLogin = () => {
+    const DISCORD_CLIENT_ID = "1468131548938244253";
+    let redirectUri = "https://psurscwqkxpulhdncvyq.supabase.co/functions/v1/discord-auth";
 
-  async function handleDiscordLogin() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: getRedirectUrl(),
-      },
-    });
-    if (error) {
-      console.error('Discord login error:', error);
+    if (import.meta.env.DEV) {
+      redirectUri = `${window.location.origin}/`;
     }
-  }
+
+    const encodedRedirectUri = encodeURIComponent(redirectUri);
+    const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=identify%20email`;
+
+    window.location.href = authUrl;
+  };
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -133,7 +124,7 @@ export default function App() {
                 {user ? (
                   <>
                     <span className="hidden text-sm text-stone-400 sm:inline">
-                      {user.user_metadata?.full_name || user.email || 'User'}
+                      {user.user_metadata?.username || user.email || 'User'}
                     </span>
                     <button
                       type="button"
