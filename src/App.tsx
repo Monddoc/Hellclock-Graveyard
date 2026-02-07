@@ -88,7 +88,7 @@ export default function App() {
     let redirectUri = "https://psurscwqkxpulhdncvyq.supabase.co/functions/v1/discord-auth";
 
     if (import.meta.env.DEV) {
-      redirectUri = `${window.location.origin}/Hellclock-Graveyard/`;
+      redirectUri = `${window.location.origin}/`;
     }
 
     const encodedRedirectUri = encodeURIComponent(redirectUri);
